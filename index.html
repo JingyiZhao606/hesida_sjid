@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Urban Carbon Emissions Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .map-container {
+            grid-row: 1;
+            /* 地图在第一行 */
+        }
+
+        .map-image-container {
+            grid-row: 2;
+            /* 图片在第二行 */
+            grid-column: 1;
+            /* 在第一列 */
+        }
+
+        .sidebar {
+            grid-row: 1 / span 2;
+            /* 侧边栏跨越两行 */
+            grid-column: 2;
+            /* 在第二列 */
+        }
+
+        .map-container {
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: 600px;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .control-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        #animate-btn {
+            padding: 8px 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        #animate-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .data-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: var(--light-color);
+            border-radius: 6px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 0.3rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: var(--light-color);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: #ddd;
+        }
+
+        .tab-btn.active {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 1rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        footer {
+            background: var(--dark-color);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* 确保地图容器有明确的高度 */
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 500px; /* 添加最小高度保证显示 */
+}
+
+/* 调整地图控制按钮位置 */
+.map-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.9);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+    </style>
+</head>
+
+<body>
+    
+    <div class="container">
+        <header>
+            <h1>UK Urban Carbon Emissions Monitoring System</h1>
+            <p>Real-time carbon emissions data powered by night-time light satellite imagery</p>
+        </header>
+
+        <div class="dashboard">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <div class="control-group">
+                        <label for="year-select">Year:</label>
+                        <select id="year-select">
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="data-type">Data Type:</label>
+                        <select id="data-type">
+                            <option value="emissions">Carbon Emissions</option>
+                            <option value="nightlight">Night-time Light</option>
+                            <option value="deviation">Deviation from Average</option>
+                        </select>
+                    </div>
+                    <button id="animate-btn">Animate (2015-2023)</button>
+                </div>
+            </div>
+            <div class="map-image-container">
+                <div class="picture">
+                    <img src="./1.png" alt="碳排放数据可视化示例">
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="data-card">
+                    <h3>Selected City: <span id="selected-city">None</span></h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value" id="emission-value">--</div>
+                            <div class="metric-label">CO₂ Emissions (kt)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="light-value">--</div>
+                            <div class="metric-label">Night Light Index</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="change-value">--</div>
+                            <div class="metric-label">YoY Change</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Emissions Trend (2015-2023)</h3>
+                    <canvas id="trend-chart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Night Light vs Emissions Correlation</h3>
+                    <canvas id="correlation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>About This Project</h2>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="model">The Model</button>
+                <button class="tab-btn" data-tab="data">Data Sources</button>
+                <button class="tab-btn" data-tab="methodology">Methodology</button>
+                <button class="tab-btn" data-tab="team">Our Team</button>
+            </div>
+
+            <div class="tab-content active" id="model-content">
+                <h3>Night-time Light Carbon Emissions Model</h3>
+                <p>Our advanced machine learning model correlates satellite-observed night-time light data with
+                    ground-collected carbon emissions measurements to provide accurate, real-time estimates of urban
+                    carbon emissions across the UK.</p>
+                <p>The model has been validated with field data from 15 major UK cities, showing an R² accuracy of 0.93
+                    compared to traditional measurement methods.</p>
+            </div>
+
+            <div class="tab-content" id="data-content">
+                <h3>Data Sources</h3>
+                <ul>
+                    <li><strong>Night-time Light Data:</strong> NASA VIIRS Day/Night Band</li>
+                    <li><strong>Ground Truth Emissions:</strong> UK Department for Business, Energy & Industrial
+                        Strategy (BEIS)</li>
+                    <li><strong>Field Measurements:</strong> Our team's mobile sensor network</li>
+                    <li><strong>Economic Data:</strong> Office for National Statistics</li>
+                </ul>
+            </div>
+
+            <div class="tab-content" id="methodology-content">
+                <h3>Research Methodology</h3>
+                <ol>
+                    <li>Data collection from satellite and official sources</li>
+                    <li>Field data collection in selected urban areas</li>
+                    <li>Model development using gradient boosting regression</li>
+                    <li>Multi-round validation with field data</li>
+                    <li>Web platform development and deployment</li>
+                </ol>
+            </div>
+
+            <div class="tab-content" id="team-content">
+                <h3>Project Team</h3>
+                <p>This project is a collaboration between the University of Southampton and Explorer Team:[Jingyi Zhao,
+                    Qinyu Shi, Siying Lu, Kexin Dou]. The project is funded by the Carbon Trust.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 UK Urban Carbon Emissions Monitoring Project | Contact: jz33n23@soton.ac.uk</p>
+    </footer>
+
+    <!-- 添加高德地图安全配置和JS -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "e7c234f2ca3351f8604a4b3891af4a99",
+        };
+        document.addEventListener('DOMContentLoaded', function() {
+    // 初始化高德地图
+    const map = new AMap.Map('map', {
+        viewMode: '2D', // 默认使用2D地图
+        zoom: 6, // 初始化缩放级别
+        center: [116.397428, 39.90923], // 初始化中心点（北京）
+        resizeEnable: true // 自适应窗口大小
+    });
+    
+    // 添加控件（可选）
+    map.addControl(new AMap.ControlBar({
+        showZoomBar: true,
+        showControlButton: true,
+        position: {
+            right: '10px',
+            top: '10px'
+        }
+    }));
+    
+    // 添加比例尺
+    map.addControl(new AMap.Scale());
+    
+    // 添加工具条
+    map.addControl(new AMap.ToolBar({
+        position: {
+            right: '10px',
+            top: '40px'
+        }
+    }));
+    
+    // 模拟城市数据（保持原有数据不变）
+    const mockCityData = {
+        "London": {
+            position: [-0.1278, 51.5074], // 注意高德地图使用[经度,纬度]
+            emissions: 12500,
+            nightlight: 85,
+            yoyChange: -2.3,
+            trend: [10000, 10500, 11000, 11500, 12000, 12300, 12700, 12500],
+            correlation: {
+                light: [30, 40, 50, 60, 70, 75, 80, 85],
+                emissions: [8000, 9000, 10000, 11000, 11500, 12000, 12500, 12500]
+            }
+        },
+        "Manchester": {
+            position: [-2.2426, 53.4808],
+            emissions: 4500,
+            nightlight: 65,
+            yoyChange: 1.2,
+            trend: [4000, 4100, 4200, 4300, 4400, 4450, 4500, 4500],
+            correlation: {
+                light: [25, 35, 45, 50, 55, 60, 65, 65],
+                emissions: [3500, 3800, 4000, 4200, 4300, 4400, 4500, 4500]
+            }
+        }
+    };
+    
+    // 创建标记点
+    Object.keys(mockCityData).forEach(city => {
+        const data = mockCityData[city];
+        const marker = new AMap.Marker({
+            position: data.position,
+            title: city,
+            map: map
+        });
+        
+        // 点击事件
+        marker.on('click', function() {
+            simulateCityClick(city);
+            
+            // 高德地图的信息窗口
+            const infoWindow = new AMap.InfoWindow({
+                content: `<div style="padding:5px;">${city}<br/>碳排放: ${data.emissions}kt</div>`,
+                offset: new AMap.Pixel(0, -30)
+            });
+            infoWindow.open(map, data.position);
+        });
+    });
+    
+    // 其余原有JavaScript代码保持不变...
+});
+    </script>
+    <script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=2.0&key=c9c043850be9570705de7c3bcd32b938&plugin=AMap.Walking"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script>
+        // JavaScript代码将在这里添加
+        document.addEventListener('DOMContentLoaded', function () {
+            // 初始化地图
+            const map = L.map('map').setView([54.5, -4], 6);
+
+            // 添加底图
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // 标签切换功能
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    // 移除所有active类
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                    // 添加active类到当前按钮和对应内容
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+
+            // 模拟数据 - 在实际应用中应从API获取
+            const mockCityData = {
+                "London": {
+                    emissions: 12500,
+                    nightlight: 85,
+                    yoyChange: -2.3,
+                    trend: [10000, 10500, 11000, 11500, 12000, 12300, 12700, 12500],
+                    correlation: {
+                        light: [30, 40, 50, 60, 70, 75, 80, 85],
+                        emissions: [8000, 9000, 10000, 11000, 11500, 12000, 12500, 12500]
+                    }
+                },
+                "Manchester": {
+                    emissions: 4500,
+                    nightlight: 65,
+                    yoyChange: 1.2,
+                    trend: [4000, 4100, 4200, 4300, 4400, 4450, 4500, 4500],
+                    correlation: {
+                        light: [25, 35, 45, 50, 55, 60, 65, 65],
+                        emissions: [3500, 3800, 4000, 4200, 4300, 4400, 4500, 4500]
+                    }
+                }
+            };
+
+            // 模拟地图点击事件
+            function simulateCityClick(cityName) {
+                const cityData = mockCityData[cityName];
+                if (!cityData) return;
+
+                document.getElementById('selected-city').textContent = cityName;
+                document.getElementById('emission-value').textContent = cityData.emissions.toLocaleString();
+                document.getElementById('light-value').textContent = cityData.nightlight;
+                document.getElementById('change-value').textContent = cityData.yoyChange > 0 ?
+                    `+${cityData.yoyChange}%` : `${cityData.yoyChange}%`;
+
+                // 更新趋势图表
+                updateTrendChart(cityData.trend);
+
+                // 更新相关性图表
+                updateCorrelationChart(cityData.correlation);
+            }
+
+            // 初始化趋势图表
+            const trendCtx = document.getElementById('trend-chart').getContext('2d');
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022'],
+                    datasets: [{
+                        label: 'CO₂ Emissions (kt)',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: false
+                            }
+                        }]
+                    }
+                }
+            });
+
+            // 初始化相关性图表
+            const correlationCtx = document.getElementById('correlation-chart').getContext('2d');
+            const correlationChart = new Chart(correlationCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Night Light vs Emissions',
+                        data: [],
+                        backgroundColor: '#3498db',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Night Light Index'
+                            }
+                        }],
+                        yAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'CO₂ Emissions (kt)'
+                            }
+                        }]
+                    },
+                    tooltips: {
+                        callbacks: {
+                            label: function (tooltipItem) {
+                                return `Emissions: ${tooltipItem.yLabel} kt, Light: ${tooltipItem.xLabel}`;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 更新趋势图表函数
+            function updateTrendChart(data) {
+                trendChart.data.datasets[0].data = data;
+                trendChart.update();
+            }
+
+            // 更新相关性图表函数
+            function updateCorrelationChart(data) {
+                const points = [];
+                for (let i = 0; i < data.light.length; i++) {
+                    points.push({
+                        x: data.light[i],
+                        y: data.emissions[i]
+                    });
+                }
+                correlationChart.data.datasets[0].data = points;
+                correlationChart.update();
+            }
+
+            // 模拟点击伦敦
+            setTimeout(() => {
+                simulateCityClick('London');
+            }, 1000);
+
+            // 添加模拟城市标记
+            L.marker([51.5074, -0.1278]).addTo(map)
+                .bindPopup('London')
+                .on('click', () => simulateCityClick('London'));
+
+            L.marker([53.4808, -2.2426]).addTo(map)
+                .bindPopup('Manchester')
+                .on('click', () => simulateCityClick('Manchester'));
+        });
+    </script>
+</body>
+
+</html>
